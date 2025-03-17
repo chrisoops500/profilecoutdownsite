@@ -1,0 +1,381 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ProfileCountdownSite</title>
+    <!-- Add Chalkduster font (fallback to system fonts if not available) -->
+    <style>
+        @font-face {
+            font-family: 'Chalkduster';
+            src: url('/System/Library/Fonts/Supplemental/Chalkduster.ttf') format('truetype');
+        }
+    </style>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            margin: 0;
+            padding: 20px;
+            background-color: #f5f5f5;
+        }
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+            background-color: white;
+            border-radius: 10px;
+            padding: 20px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        h1 {
+            color: #2c3e50;
+            text-align: center;
+            margin-bottom: 20px;
+        }
+        .form-group {
+            margin-bottom: 15px;
+        }
+        label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: bold;
+        }
+        input, select {
+            width: 100%;
+            padding: 8px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            box-sizing: border-box;
+        }
+        button {
+            background-color: #e74c3c;
+            color: white;
+            border: none;
+            padding: 10px 15px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 16px;
+            transition: background-color 0.3s;
+            margin-right: 10px;
+        }
+        button:hover {
+            background-color: #c0392b;
+        }
+        .button-container {
+            text-align: center;
+            margin: 20px 0;
+        }
+        #canvas {
+            max-width: 100%;
+            height: auto;
+            display: block;
+            margin: 20px auto;
+            border: 1px solid #ddd;
+        }
+        #imagePreview {
+            max-width: 100%;
+            max-height: 200px;
+            margin-top: 10px;
+            display: none;
+        }
+        .options-panel {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 20px;
+        }
+        .column {
+            flex: 1;
+            min-width: 300px;
+        }
+        .status-message {
+            text-align: center;
+            margin-top: 10px;
+            color: #27ae60;
+            font-weight: bold;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>ProfileCountdownSite</h1>
+        
+        <div class="options-panel">
+            <div class="column">
+                <div class="form-group">
+                    <label for="imageInput">Choose an Image:</label>
+                    <input type="file" id="imageInput" accept="image/*">
+                    <img id="imagePreview">
+                </div>
+                
+                <div class="form-group">
+                    <label for="bgColorInput">Background Color (if no image):</label>
+                    <input type="color" id="bgColorInput" value="#ffffff">
+                </div>
+                
+                <div class="form-group">
+                    <label for="targetSelector">Countdown To:</label>
+                    <select id="targetSelector">
+                        <option value="year">New Year</option>
+                        <option value="date">Specific Date</option>
+                    </select>
+                </div>
+                
+                <div class="form-group" id="yearInputGroup">
+                    <label for="yearInput">Enter Target Year:</label>
+                    <input type="number" id="yearInput" placeholder="2026" min="2025" value="2026">
+                </div>
+                
+                <div class="form-group" id="dateInputGroup" style="display:none;">
+                    <label for="dateInput">Select Target Date:</label>
+                    <input type="date" id="dateInput">
+                </div>
+            </div>
+            
+            <div class="column">
+                <div class="form-group">
+                    <label for="fontSelect">Text Font:</label>
+                    <select id="fontSelect">
+                        <option value="Chalkduster">Chalkduster</option>
+                        <option value="Arial">Arial</option>
+                        <option value="Verdana">Verdana</option>
+                        <option value="Georgia">Georgia</option>
+                        <option value="Impact">Impact</option>
+                        <option value="Courier New">Courier New</option>
+                    </select>
+                </div>
+                
+                <div class="form-group">
+                    <label for="fontSizeInput">Font Size:</label>
+                    <input type="range" id="fontSizeInput" min="20" max="100" value="40">
+                    <span id="fontSizeValue">40px</span>
+                </div>
+                
+                <div class="form-group">
+                    <label for="positionInput">Text Position:</label>
+                    <select id="positionInput">
+                        <option value="top">Top</option>
+                        <option value="middle">Middle</option>
+                        <option value="bottom">Bottom</option>
+                    </select>
+                </div>
+                
+                <div class="form-group">
+                    <label for="colorInput">Text Color:</label>
+                    <input type="color" id="colorInput" value="#000000">
+                </div>
+                
+                <div class="form-group">
+                    <label for="outlineCheck">Add Text Outline:</label>
+                    <input type="checkbox" id="outlineCheck" style="width: auto;">
+                    <input type="color" id="outlineColorInput" value="#ffffff" style="width: 60px; margin-left: 10px;">
+                </div>
+            </div>
+        </div>
+        
+        <div class="button-container">
+            <button onclick="generateCountdownImage()">Generate Countdown Image</button>
+            <button onclick="downloadImage()" id="downloadBtn">Download Image</button>
+            <button onclick="resetForm()">Reset</button>
+        </div>
+        
+        <div id="statusMessage" class="status-message"></div>
+        
+        <canvas id="canvas"></canvas>
+    </div>
+
+    <script>
+        // Initialize date input with tomorrow's date
+        document.addEventListener('DOMContentLoaded', function() {
+            const tomorrow = new Date();
+            tomorrow.setDate(tomorrow.getDate() + 1);
+            const dateString = tomorrow.toISOString().split('T')[0];
+            document.getElementById('dateInput').value = dateString;
+            
+            // Set up event listeners
+            document.getElementById('targetSelector').addEventListener('change', function() {
+                if (this.value === 'year') {
+                    document.getElementById('yearInputGroup').style.display = 'block';
+                    document.getElementById('dateInputGroup').style.display = 'none';
+                } else {
+                    document.getElementById('yearInputGroup').style.display = 'none';
+                    document.getElementById('dateInputGroup').style.display = 'block';
+                }
+            });
+            
+            document.getElementById('fontSizeInput').addEventListener('input', function() {
+                document.getElementById('fontSizeValue').textContent = this.value + 'px';
+            });
+            
+            document.getElementById('imageInput').addEventListener('change', function(e) {
+                const file = e.target.files[0];
+                if (file) {
+                    const reader = new FileReader();
+                    reader.onload = function(event) {
+                        const imgPreview = document.getElementById('imagePreview');
+                        imgPreview.src = event.target.result;
+                        imgPreview.style.display = 'block';
+                    };
+                    reader.readAsDataURL(file);
+                }
+            });
+        });
+
+        function generateCountdownImage() {
+            const canvas = document.getElementById('canvas');
+            const ctx = canvas.getContext('2d');
+            const imageInput = document.getElementById('imageInput').files[0];
+            const targetSelector = document.getElementById('targetSelector').value;
+            const fontFamily = document.getElementById('fontSelect').value;
+            const fontSize = document.getElementById('fontSizeInput').value;
+            const position = document.getElementById('positionInput').value;
+            const color = document.getElementById('colorInput').value;
+            const hasOutline = document.getElementById('outlineCheck').checked;
+            const outlineColor = document.getElementById('outlineColorInput').value;
+            const bgColor = document.getElementById('bgColorInput').value;
+            
+            // Calculate days remaining
+            let targetDate;
+            let targetText;
+            
+            if (targetSelector === 'year') {
+                const year = document.getElementById('yearInput').value;
+                if (!year) {
+                    alert("Please enter a target year.");
+                    return;
+                }
+                targetDate = new Date(year, 0, 1);
+                targetText = year;
+            } else {
+                const dateString = document.getElementById('dateInput').value;
+                if (!dateString) {
+                    alert("Please select a target date.");
+                    return;
+                }
+                targetDate = new Date(dateString);
+                targetText = targetDate.toLocaleDateString();
+            }
+            
+            const today = new Date();
+            const daysRemaining = Math.ceil((targetDate - today) / (1000 * 60 * 60 * 24));
+            
+            if (daysRemaining < 0) {
+                alert("Please select a future date.");
+                return;
+            }
+            
+            const countdownText = `${daysRemaining} days to ${targetText}`;
+            
+            // If user uploaded an image
+            if (imageInput) {
+                const reader = new FileReader();
+                reader.onload = function(e) {
+                    const img = new Image();
+                    img.onload = function() {
+                        canvas.width = img.width;
+                        canvas.height = img.height;
+                        
+                        // Draw the image
+                        ctx.drawImage(img, 0, 0);
+                        
+                        // Add text
+                        drawText(ctx, countdownText, canvas.width, canvas.height, position, color, fontFamily, fontSize, hasOutline, outlineColor);
+                        
+                        document.getElementById('statusMessage').textContent = "Image generated successfully!";
+                        document.getElementById('downloadBtn').disabled = false;
+                    };
+                    img.src = e.target.result;
+                };
+                reader.readAsDataURL(imageInput);
+            } else {
+                // Create a blank canvas with specified background color
+                canvas.width = 800;
+                canvas.height = 600;
+                
+                // Fill with background color
+                ctx.fillStyle = bgColor;
+                ctx.fillRect(0, 0, canvas.width, canvas.height);
+                
+                // Add text
+                drawText(ctx, countdownText, canvas.width, canvas.height, position, color, fontFamily, fontSize, hasOutline, outlineColor);
+                
+                document.getElementById('statusMessage').textContent = "Image generated successfully!";
+                document.getElementById('downloadBtn').disabled = false;
+            }
+        }
+        
+        function drawText(ctx, text, canvasWidth, canvasHeight, position, color, fontFamily, fontSize, hasOutline, outlineColor) {
+            // Try to use Chalkduster font, but fall back to the selected font if not available
+            try {
+                ctx.font = `${fontSize}px ${fontFamily}`;
+            } catch (err) {
+                console.log("Warning: Selected font may not be available. Using system default font instead.");
+                ctx.font = `${fontSize}px Arial`;
+            }
+            ctx.textAlign = 'center';
+            
+            // Calculate text position
+            const textWidth = ctx.measureText(text).width;
+            let xPosition = canvasWidth / 2;
+            let yPosition;
+            
+            if (position === 'top') {
+                yPosition = parseInt(fontSize) + 20;
+            } else if (position === 'middle') {
+                yPosition = canvasHeight / 2;
+            } else { // bottom
+                yPosition = canvasHeight - 30;
+            }
+            
+            // Draw text outline if selected
+            if (hasOutline) {
+                ctx.strokeStyle = outlineColor;
+                ctx.lineWidth = 5;
+                ctx.strokeText(text, xPosition, yPosition);
+            }
+            
+            // Draw text
+            ctx.fillStyle = color;
+            ctx.fillText(text, xPosition, yPosition);
+        }
+        
+        function downloadImage() {
+            const canvas = document.getElementById('canvas');
+            if (canvas.width === 0 || canvas.height === 0) {
+                alert("Please generate an image first.");
+                return;
+            }
+            
+            const imageUrl = canvas.toDataURL("image/png");
+            const a = document.createElement('a'); // 创建一个a节点
+            const event = new MouseEvent('click'); // 模拟鼠标click点击事件
+            a.download = "countdown_image.png"; // 设置a节点的download属性值
+            a.href = imageUrl; // 将图片的src赋值给a节点的href
+            a.dispatchEvent(event); // 触发鼠标点击事件
+        }
+        
+        function resetForm() {
+            document.getElementById('imageInput').value = '';
+            document.getElementById('imagePreview').style.display = 'none';
+            document.getElementById('yearInput').value = '2026';
+            document.getElementById('fontSizeInput').value = '40';
+            document.getElementById('fontSizeValue').textContent = '40px';
+            document.getElementById('positionInput').value = 'top';
+            document.getElementById('colorInput').value = '#000000';
+            document.getElementById('outlineCheck').checked = false;
+            document.getElementById('outlineColorInput').value = '#ffffff';
+            document.getElementById('bgColorInput').value = '#ffffff';
+            document.getElementById('targetSelector').value = 'year';
+            document.getElementById('yearInputGroup').style.display = 'block';
+            document.getElementById('dateInputGroup').style.display = 'none';
+            
+            // Clear canvas
+            const canvas = document.getElementById('canvas');
+            const ctx = canvas.getContext('2d');
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            canvas.width = 0;
+            canvas.height = 0;
+            
+            document.getElementById('statusMessage').textContent = '';
+        }
+    </script>
+</body>
+</html>
